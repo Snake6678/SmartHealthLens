@@ -1,80 +1,113 @@
-# SmartHealthLens — On‑Device Health Insights (Camera + Sensors)
-
-Real-time, privacy-first health analytics using camera and sensors. This repo includes:
-- **iOS (SwiftUI + AVFoundation + CoreMotion)**: Real-time camera capture, rPPG signal extraction (green-channel), FFT-based heart-rate estimate, step cadence, and a clean SwiftUI dashboard. *(Add these files into an Xcode iOS App project — directions below.)*
-- **Realtime Demo (Python/OpenCV)**: A Mac-ready demo that estimates heart rate from your webcam using non-ML rPPG and displays the live estimate.
-- **Model Training (Python/PyTorch)**: A training scaffold for a tiny CNN/GRU that predicts HR/BR from short rPPG windows, with Core ML conversion hooks.
-
-> Why this impresses Apple: It showcases on-device signal processing, efficient UI, privacy-by-design, and a clear path to **Core ML** deployment.
+Got it — here’s the **final recruiter-ready README.md** you can drop straight into your repo before running the Git commands I gave you.  
+This version is clean, professional, and has **no AI mentions** anywhere.  
 
 ---
 
-## Quick Start (Mac)
+**Save this as `README.md` in your project root** (`~/Downloads/SmartHealthLens/README.md`):
 
-### 1) Run the webcam demo (no Xcode needed)
+```markdown
+# SmartHealthLens
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+![Platform](https://img.shields.io/badge/platform-iOS%20%7C%20macOS-lightgrey)
+![Tech](https://img.shields.io/badge/Tech-Core%20ML%20%7C%20PyTorch%20%7C%20OpenCV-blue)
+
+SmartHealthLens is an on-device, privacy-first project that estimates **heart rate** from subtle changes in skin tone captured by a camera. It runs entirely on-device, demonstrating real-time computer vision, signal processing, and edge AI deployment using **SwiftUI**, **Core ML**, **OpenCV**, and **PyTorch**.
+
+---
+
+## ✨ Features
+- **Real-time rPPG** heart-rate estimation from webcam or iOS camera feed.
+- **Forehead ROI tracking** via face detection for faster, more stable readings.
+- **SwiftUI iOS app** with live preview, HR display, and step cadence from Core Motion.
+- **Core ML export hooks** for integrating trained PyTorch models.
+- **Privacy-first**: All processing is performed locally, with no cloud connections.
+
+---
+
+## 🚀 Quick Start — macOS Webcam Demo
 ```bash
 cd realtime-demo
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python demo_webcam_hr.py
 ```
-- Move your face or fingertip into view with decent light. The HR estimate stabilizes after ~20–40 seconds.
-- This demo is **non-ML** (pure signal processing) to stay entirely on-device and transparent.
+**Tips:**  
+- Use steady, diffuse lighting.  
+- Keep your forehead inside the green rectangle.  
+- Wait ~20–40 seconds for a stable BPM reading.  
 
-### 2) iOS app (SwiftUI)
-1. Open Xcode → File → New → Project → iOS App (SwiftUI, Swift).
-2. Name it **SmartHealthLens**, Interface **SwiftUI**, Lifecycle **SwiftUI App**.
-3. In the new project, add the files from `ios/SmartHealthLens/` (drag the entire folder into Xcode, select "Copy items if needed").
-4. Add to **Info.plist**:
-   - `Privacy - Camera Usage Description` = "Needed to analyze subtle color changes for heart rate."
-   - `Privacy - Motion Usage Description` = "Used for activity/cadence insights."
-5. Run on device (recommended). The app shows live camera feed, signal plot, and HR estimate.
+Press **ESC** to exit.
 
-### 3) Train a tiny model (optional)
+---
+
+## 📱 iOS App (SwiftUI)
+1. In Xcode → New → iOS App (SwiftUI).
+2. Drag files from `ios/SmartHealthLens/` into your project (copy if needed).
+3. Add to **Info.plist**:
+   - `Privacy - Camera Usage Description`
+   - `Privacy - Motion Usage Description`
+4. Build and run on a physical iOS device.
+
+---
+
+## 🧠 Model Training → Core ML (Optional)
 ```bash
 cd model-training
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python train_stub.py
+python export_coreml.py  # produces TinyHR.mlmodel
 ```
-- This provides a training pipeline scaffold. Replace the `Dataset` with your data loader.
-- Use `export_coreml.py` to convert your trained model to Core ML for iOS.
+Place `TinyHR.mlmodel` into the iOS app and replace the FFT-based estimator with model inference.
 
 ---
 
-## Repository Structure
+## ⚙ How It Works
+1. Capture frames using AVFoundation (iOS) or OpenCV (macOS).
+2. Detect face and isolate forehead region for optimal signal quality.
+3. Extract average green-channel intensity per frame.
+4. Detrend and normalize signal, then apply FFT.
+5. Identify dominant frequency in 0.7–4.0 Hz band → convert to BPM.
 
 ```
-SmartHealthLens/
-├── README.md
-├── LICENSE
-├── ios/
-│   └── SmartHealthLens/
-│       ├── SmartHealthLensApp.swift
-│       ├── ContentView.swift
-│       ├── CameraView.swift
-│       ├── SignalProcessor.swift
-│       ├── HeartRateEstimator.swift
-│       ├── SensorManager.swift
-│       └── Utilities.swift
-├── realtime-demo/
-│   ├── requirements.txt
-│   └── demo_webcam_hr.py
-└── model-training/
-    ├── requirements.txt
-    ├── train_stub.py
-    └── export_coreml.py
+Camera → Forehead ROI → mean(G) → detrend → normalize → FFT → peak → BPM
 ```
 
 ---
 
-## Roadmap / Stretch
-- Add **Core ML** model for HR/BR inference (replace or augment FFT estimator).
-- **Apple Watch** extension: fuse PPG and accelerometer.
-- **AR overlay** with ARKit.
-- Quantization-aware training + Core ML Tools conversion.
+## 🛠 Roadmap
+- [ ] Replace FFT method with Core ML model for HR and breathing rate.
+- [ ] Add ARKit overlay for ROI placement.
+- [ ] Integrate Apple Watch data for sensor fusion.
+- [ ] Use Vision framework for face mesh to improve accuracy in motion/shadow.
+- [ ] Add automated tests and CI.
 
-## License
+---
+
+## 🐛 Troubleshooting — macOS Camera Access
+If you see “not authorized to capture video”:
+```bash
+tccutil reset Camera
+```
+Then go to: **System Settings → Privacy & Security → Camera → enable Terminal/iTerm/VS Code**.  
+If the problem persists, install:
+```bash
+pip install pyobjc-core==10.3 pyobjc-framework-AVFoundation==10.3
+```
+This triggers a native macOS permission prompt.
+
+---
+
+## ⚖ Disclaimer
+This is a demonstration project and **not a medical device**. It must not be used for medical diagnosis, monitoring, or treatment.
+
+---
+
+## 📄 License
 MIT
+```
+
+---
