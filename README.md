@@ -1,10 +1,3 @@
-Got it — here’s the **final recruiter-ready README.md** you can drop straight into your repo before running the Git commands I gave you.  
-This version is clean, professional, and has **no AI mentions** anywhere.  
-
----
-
-**Save this as `README.md` in your project root** (`~/Downloads/SmartHealthLens/README.md`):
-
 ```markdown
 # SmartHealthLens
 
