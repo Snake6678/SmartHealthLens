@@ -1,0 +1,81 @@
+import cv2
+import numpy as np
+import time
+
+def rolling_window(a, n):
+    if len(a) < n:
+        return None
+    shape = (len(a) - n + 1, n)
+    strides = (a.strides[0], a.strides[0])
+    return np.lib.stride_tricks.as_strided(a, shape=shape, strides=strides)
+
+def estimate_hr(signal, fs=30.0):
+    x = signal.astype(np.float32)
+    x = x - x.mean()
+    std = x.std() + 1e-6
+    x = x / std
+    
+    n = int(2 ** np.ceil(np.log2(len(x))))
+    X = np.fft.rfft(np.pad(x, (0, n-len(x))))
+    freqs = np.fft.rfftfreq(n, d=1.0/fs)
+    
+    band = (freqs >= 0.7) & (freqs <= 4.0)
+    if band.sum() == 0:
+        return None
+    mag = np.abs(X)[band]
+    fband = freqs[band]
+    f = fband[np.argmax(mag)]
+    return f * 60.0
+
+def main():
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        print("Could not open webcam")
+        return
+    
+    values = []
+    win_sec = 20
+    fs = 30.0
+    max_len = int(win_sec * fs)
+    last_est = None
+    last_t = time.time()
+    
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        
+        # Use a centered square ROI (face-level)
+        h, w = frame.shape[:2]
+        size = min(h, w) // 3
+        x0 = w//2 - size//2
+        y0 = h//2 - size//2
+        roi = frame[y0:y0+size, x0:x0+size]
+        
+        # Compute mean green
+        g = roi[:, :, 1].mean() / 255.0
+        values.append(g)
+        if len(values) > max_len:
+            values = values[-max_len:]
+        
+        # Update HR estimate at ~2 Hz
+        if time.time() - last_t > 0.5 and len(values) > max_len//2:
+            last_t = time.time()
+            hr = estimate_hr(np.array(values), fs=fs)
+            if hr is not None and 40 <= hr <= 220:
+                last_est = hr
+        
+        # Draw
+        cv2.rectangle(frame, (x0, y0), (x0+size, y0+size), (0,255,0), 2)
+        text = f"HR: {last_est:.0f} bpm" if last_est else "HR: --"
+        cv2.putText(frame, text, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255,255,255), 2)
+        cv2.imshow("SmartHealthLens (Webcam)", frame)
+        
+        if cv2.waitKey(1) & 0xFF == 27:  # ESC
+            break
+    
+    cap.release()
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
